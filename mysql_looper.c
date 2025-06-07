@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
     const char *user = NULL;
     const char *password = NULL;
     int outputJson = 0;
+    int outputCsv = 0;
     int loop = 2500;
     int showOutput = 0;
     int onlyTotal = 0;
@@ -39,7 +40,7 @@ int main(int argc, char *argv[]) {
     // Check the number of command line arguments
     if (argc < 7) {
         fprintf(stderr, "Missing required arguments\n");
-        fprintf(stderr, "Usage: %s -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> (--json / --show-output / --only-total)\n", argv[0]);
+        fprintf(stderr, "Usage: %s -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> (--json / --csv / --show-output / --only-total)\n", argv[0]);
         exit(1);
     }
 
@@ -77,6 +78,8 @@ int main(int argc, char *argv[]) {
             strcpy(query, argv[i + 1]);
         } else if (strcmp(argv[i], "--json") == 0) {
             outputJson = 1;
+        } else if (strcmp(argv[i], "--csv") == 0) {
+            outputCsv = 1;
         } else if (strcmp(argv[i], "--show-output") == 0) {
             showOutput = 1;
         } else if (strcmp(argv[i], "--port") == 0) {
@@ -193,6 +196,18 @@ int main(int argc, char *argv[]) {
         printf("  \"finishTime\": %.8f,\n", finishTime);
         printf("  \"totalTime\": %.8f\n", totalTime);
         printf("}\n");
+        return 0;
+    } 
+
+    if (outputCsv) {
+        if (onlyTotal){
+            printf("%.8f\n", totalTime);
+            return 0;
+        }
+
+        printf("hostname,dbHost,dbUser,dbPort,loop,query,connectTime,loopTime,finishTime,totalTime\n");
+        printf("%s,%s,%s,%d,%d,%s,%.8f,%.8f,%.8f,%.8f\n", 
+               hostname, host, user, port, loop, query, connectTime, loopTime, finishTime, totalTime);
         return 0;
     } 
 
