@@ -7,19 +7,23 @@ set(CMAKE_C_STANDARD 11)
 add_executable(mysql_looper mysql_looper.c)
 add_executable(mysql_looperd mysql_looperd.c)
 
-# Execute mariadb_config to get compilation flags and libraries
-execute_process(COMMAND mariadb_config --cflags OUTPUT_VARIABLE MYSQL_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND mariadb_config --libs OUTPUT_VARIABLE MYSQL_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
+# Execute mysql_config to get compilation flags and libraries
+execute_process(COMMAND mysql_config --cflags OUTPUT_VARIABLE MYSQL_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+execute_process(COMMAND mysql_config --libs OUTPUT_VARIABLE MYSQL_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
 
 # Set compilation flags for both targets
-string(REPLACE " " ";" MYSQL_CFLAGS_LIST ${MYSQL_CFLAGS})
-target_compile_options(mysql_looper PRIVATE ${MYSQL_CFLAGS_LIST})
-target_compile_options(mysql_looperd PRIVATE ${MYSQL_CFLAGS_LIST})
+if(MYSQL_CFLAGS)
+    string(REPLACE " " ";" MYSQL_CFLAGS_LIST ${MYSQL_CFLAGS})
+    target_compile_options(mysql_looper PRIVATE ${MYSQL_CFLAGS_LIST})
+    target_compile_options(mysql_looperd PRIVATE ${MYSQL_CFLAGS_LIST})
+endif()
 
 # Link against the MySQL Connector/C library for both targets
-string(REPLACE " " ";" MYSQL_LIBS_LIST ${MYSQL_LIBS})
-target_link_libraries(mysql_looper PRIVATE ${MYSQL_LIBS_LIST})
-target_link_libraries(mysql_looperd PRIVATE ${MYSQL_LIBS_LIST})
+if(MYSQL_LIBS)
+    string(REPLACE " " ";" MYSQL_LIBS_LIST ${MYSQL_LIBS})
+    target_link_libraries(mysql_looper PRIVATE ${MYSQL_LIBS_LIST})
+    target_link_libraries(mysql_looperd PRIVATE ${MYSQL_LIBS_LIST})
+endif()
 
 # set HAVE_MARIADB build flag and link their corresponding static libraries
 if (MYSQL_CFLAGS MATCHES ".*mariadb.*")

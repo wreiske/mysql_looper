@@ -12,7 +12,7 @@ build:
 
 # Create .deb package
 package: build
-	gem install fpm || echo "fpm already installed"
+	sudo gem install fpm || echo "fpm already installed"
 	rm -f *.deb
 	fpm -t deb -v 0.1.0
 
