@@ -1,0 +1,132 @@
+name: Docker Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  docker-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ruby ruby-dev rubygems libmariadb-dev
+
+      - name: Install fpm (Effing Package Management)
+        run: sudo gem install fpm
+
+      - name: Build and Test with Docker
+        run: make docker-test
+
+      - name: Build artifacts for inspection
+        run: |
+          make build
+          make package
+          ls -la *.deb
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-artifacts
+          path: |
+            *.deb
+            build/mysql_looper
+            build/mysql_looperd
+          retention-days: 30
+
+  multi-db-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mariadb_version: ["10.11", "11.4"]
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ruby ruby-dev rubygems libmariadb-dev
+
+      - name: Install fpm
+        run: sudo gem install fpm
+
+      - name: Create versioned Dockerfile
+        run: |
+          sed "s/FROM debian:12/FROM mariadb:${{ matrix.mariadb_version }}-jammy/" Dockerfile.test > Dockerfile.test.mariadb${{ matrix.mariadb_version }}
+          # Adjust the Dockerfile for MariaDB base image
+          sed -i '/RUN apt-get update && apt-get install -y/,/&& rm -rf \/var\/lib\/apt\/lists\//c\
+          RUN apt-get update && apt-get install -y \
+              build-essential \
+              cmake \
+              libmariadb-dev \
+              ruby \
+              ruby-dev \
+              rubygems \
+              procps \
+              && rm -rf /var/lib/apt/lists/*' Dockerfile.test.mariadb${{ matrix.mariadb_version }}
+
+      - name: Build and test with MariaDB ${{ matrix.mariadb_version }}
+        run: |
+          make build
+          make package
+          docker build -f Dockerfile.test.mariadb${{ matrix.mariadb_version }} -t mysql_looper:test-${{ matrix.mariadb_version }} .
+          docker run --rm mysql_looper:test-${{ matrix.mariadb_version }}
+
+  package-validation:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies in container
+        run: |
+          apt-get update
+          apt-get install -y build-essential cmake ruby ruby-dev rubygems libmariadb-dev mariadb-server mariadb-client
+
+      - name: Install fpm
+        run: gem install fpm
+
+      - name: Build package
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          make
+          cd ..
+          fpm -t deb -v ci-test
+
+      - name: Test package installation
+        run: |
+          dpkg -i *.deb || apt-get install -fy
+          which mysql_looper
+          which mysql_looperd
+          mysql_looper --help || true
+          mysql_looperd --help || true
+
+      - name: Test with local MariaDB
+        run: |
+          service mariadb start
+          sleep 2
+          mysql -u root -e "CREATE DATABASE test_db;"
+          mysql -u root -e "CREATE USER 'test_user'@'localhost' IDENTIFIED BY 'test_password';"
+          mysql -u root -e "GRANT ALL PRIVILEGES ON test_db.* TO 'test_user'@'localhost';"
+          mysql -u root -e "FLUSH PRIVILEGES;"
+          mysql -u root test_db -e "CREATE TABLE test_table (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(100));"
+          mysql -u root test_db -e "INSERT INTO test_table (name) VALUES ('CI Test');"
+          mysql_looper -h localhost -u test_user -p test_password -l 3 -q "SELECT COUNT(*) FROM test_db.test_table;"

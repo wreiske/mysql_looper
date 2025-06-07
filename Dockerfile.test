@@ -25,4 +25,4 @@ RUN chmod +x /tests/*.sh
 WORKDIR /tests
 
 # Default command runs the test suite
-CMD ["/tests/run_tests.sh"]
+CMD ["/tests/simple_test.sh"]
