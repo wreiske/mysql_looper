@@ -117,3 +117,39 @@ cd build
 cmake ..
 make
 ```
+
+## Docker Testing
+
+mysql_looper includes comprehensive Docker-based testing with MariaDB:
+
+```sh
+# Run complete test suite
+make docker-test
+
+# Build components individually  
+make build       # Build executables
+make package     # Create .deb package
+make docker-build # Build test Docker image
+```
+
+The test suite validates:
+- Database connectivity and authentication
+- Query execution and performance measurement
+- Both mysql_looper and mysql_looperd functionality  
+- Output formats (human-readable and JSON)
+- .deb package installation and deployment
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
+## Package Installation
+
+Install from .deb package:
+
+```sh
+# Build and install locally
+make package
+sudo dpkg -i mysql-looper_*.deb
+
+# Install dependencies if needed
+sudo apt-get install -f
+```

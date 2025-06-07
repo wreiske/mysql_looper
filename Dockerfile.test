@@ -1,0 +1,28 @@
+# Dockerfile for testing mysql_looper with MariaDB
+FROM debian:12
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    mariadb-server \
+    mariadb-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install the .deb package
+COPY *.deb /tmp/
+RUN dpkg -i /tmp/*.deb || apt-get update && apt-get install -fy
+
+# Create test database and user
+COPY docker-init-db.sh /tmp/
+RUN service mariadb start && \
+    bash /tmp/docker-init-db.sh && \
+    service mariadb stop
+
+# Copy test scripts
+COPY tests/ /tests/
+RUN chmod +x /tests/*.sh
+
+# Set working directory
+WORKDIR /tests
+
+# Default command runs the test suite
+CMD ["/tests/simple_test.sh"]
