@@ -44,7 +44,7 @@ void getCurrentDateTime(char* dateTime) {
     strftime(dateTime, 20, "%Y-%m-%d %H:%M:%S", tm);
 }
 
-void runDaemon(int interval, char* host, char* user, char* password, int port, char* query, int loop, int outputJson, int showOutput, int onlyTotal) {
+void runDaemon(int interval, char* host, char* user, char* password, int port, char* query, int loop, int outputJson, int outputCsv, int showOutput, int onlyTotal) {
     int outputCount = 0;
 
     while (1) {
@@ -153,6 +153,16 @@ void runDaemon(int interval, char* host, char* user, char* password, int port, c
                 printf("{ \"dateTime\": \"%s\", \"hostname\": \"%s\", \"dbHost\": \"%s\", \"dbUser\": \"%s\", \"dbPort\": %d, \"loop\": %d, \"connectTime\": %.8f, \"loopTime\": %.8f, \"finishTime\": %.8f, \"totalTime\": %.8f }",
                     dateTime, hostname, host, user, port, loop, connectTime, loopTime, finishTime, totalTime);
             }
+        } else if (outputCsv) {
+            if (onlyTotal){
+                printf("%.8f", totalTime);
+            } else {
+                if (outputCount == 0) {
+                    printf("dateTime,query,loop,hostname,dbHost,dbUser,connectTime,loopTime,finishTime,totalTime\n");
+                }
+                printf("%s,%s,%d,%s,%s,%s,%.8f,%.8f,%.8f,%.8f\n",
+                    dateTime, query, loop, hostname, host, user, connectTime, loopTime, finishTime, totalTimeCurrent);
+            }
         } else {
             if (onlyTotal){
                 printf("%.8f", totalTime);
@@ -176,6 +186,7 @@ int main(int argc, char *argv[]) {
     const char *user = NULL;
     const char *password = NULL;
     int outputJson = 0;
+    int outputCsv = 0;
     int loop = 2500;
     int showOutput = 0;
     int onlyTotal = 0;
@@ -186,7 +197,7 @@ int main(int argc, char *argv[]) {
     // Check the number of command line arguments
     if (argc < 7) {
         fprintf(stderr, "Missing required arguments\n");
-        fprintf(stderr, "Usage: %s -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> (--json / --show-output / --only-total) [--interval <seconds>]\n", argv[0]);
+        fprintf(stderr, "Usage: %s -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> (--json / --csv / --show-output / --only-total) [--interval <seconds>]\n", argv[0]);
         exit(1);
     }
 
@@ -224,6 +235,8 @@ int main(int argc, char *argv[]) {
             strcpy(query, argv[i + 1]);
         } else if (strcmp(argv[i], "--json") == 0) {
             outputJson = 1;
+        } else if (strcmp(argv[i], "--csv") == 0) {
+            outputCsv = 1;
         } else if (strcmp(argv[i], "--show-output") == 0) {
             showOutput = 1;
         } else if (strcmp(argv[i], "--port") == 0) {
@@ -257,7 +270,7 @@ int main(int argc, char *argv[]) {
     // Register signal handler for Ctrl-C
     signal(SIGINT, handleSignal);
 
-    runDaemon(interval, host, user, password, port, query, loop, outputJson, showOutput, onlyTotal);
+    runDaemon(interval, host, user, password, port, query, loop, outputJson, outputCsv, showOutput, onlyTotal);
 
     return 0;
 }

@@ -11,7 +11,7 @@
 ## Usage
 
 ```sh
-mysql_looper -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> (--json / --show-output / --only-total)
+mysql_looper -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> (--json / --csv / --show-output / --only-total)
 ```
 
 ### Options
@@ -23,6 +23,7 @@ mysql_looper -h <host> --port 3306 -u <user> -p <password> -l <loop> -q <query> 
 - `-l`: The loop count to execute the query (e.g., 1000)
 - `-q`: The query to be executed (e.g., "SELECT * FROM users;")
 - `--json`: Optional flag to output the result in JSON format
+- `--csv`: Optional flag to output the result in CSV format
 - `--show-output`: Optional flag to output the row result for each query loop
 - `--only-total`: Optional flag to only show the total time taken for all steps
 - `--interval`: Optional flag to change the interval the daemon loop runs (only available in mysql_looperd)
@@ -45,6 +46,12 @@ mysql_looper -h localhost -u root -p mypassword -l 2500 -q "SELECT id FROM users
 
 ```sh
 mysql_looper -h localhost -u root -p mypassword -l 5000 -q "SELECT id FROM users;" --only-total
+```
+
+4. Execute a query 1000 times and output the result in CSV format for easy analysis
+
+```sh
+mysql_looper -h localhost -u root -p mypassword -l 1000 -q "SELECT id FROM users;" --csv
 ```
 
 ## Output mysql_looper
@@ -75,6 +82,10 @@ Total Time: 1.02342700 seconds
   "finishTime": 0.000188
   "totalTime": 0.060890
 }
+
+./mysql_2500 -h exampledb.example.com -u root -p removed -l 100 --csv
+hostname,dbHost,dbUser,dbPort,loop,query,connectTime,loopTime,finishTime,totalTime
+examplehost.example.com,exampledb.example.com,root,3306,100,SELECT 1;,0.00225400,0.05844800,0.00018800,0.06089000
 ```
 
 
